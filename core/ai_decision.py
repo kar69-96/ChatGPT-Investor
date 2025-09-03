@@ -6,8 +6,19 @@ import re
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
-import openai
-from openai import OpenAI
+try:
+    import anthropic
+    from anthropic import Anthropic
+    HAS_ANTHROPIC = True
+except ImportError:
+    HAS_ANTHROPIC = False
+
+try:
+    import openai
+    from openai import OpenAI  
+    HAS_OPENAI = True
+except ImportError:
+    HAS_OPENAI = False
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +28,26 @@ class AIDecisionMaker:
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config.get('openai', {})
-        self.client = OpenAI(api_key=self.config.get('api_key'))
-        self.model = self.config.get('model', 'gpt-4o')
+        api_key = self.config.get('api_key', '')
+        
+        # Detect API type based on key format
+        if api_key.startswith('sk-ant-'):
+            # Anthropic API key
+            if not HAS_ANTHROPIC:
+                raise ImportError("Anthropic package not installed. Run: pip install anthropic")
+            self.client = Anthropic(api_key=api_key)
+            self.model = 'claude-3-5-sonnet-20241022'  # Latest Claude model
+            self.is_anthropic = True
+        elif api_key.startswith('sk-'):
+            # OpenAI API key  
+            if not HAS_OPENAI:
+                raise ImportError("OpenAI package not installed. Run: pip install openai")
+            self.client = OpenAI(api_key=api_key)
+            self.model = self.config.get('model', 'gpt-4o')
+            self.is_anthropic = False
+        else:
+            raise ValueError("Invalid API key format. Expected OpenAI (sk-...) or Anthropic (sk-ant-...) key")
+            
         self.temperature = self.config.get('temperature', 0.7)
         
     def make_trading_decision(self, analysis_report: Dict[str, Any]) -> Dict[str, Any]:
@@ -27,25 +56,40 @@ class AIDecisionMaker:
             # Create the prompt for ChatGPT
             prompt = self._create_trading_prompt(analysis_report)
             
-            # Get decision from ChatGPT
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system", 
-                        "content": self._get_system_prompt()
-                    },
-                    {
-                        "role": "user", 
-                        "content": prompt
-                    }
-                ],
-                temperature=self.temperature,
-                max_tokens=1500
-            )
+            # Get decision from AI (Anthropic or OpenAI)
+            if self.is_anthropic:
+                response = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=1500,
+                    temperature=self.temperature,
+                    system=self._get_system_prompt(),
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                )
+                decision_text = response.content[0].text
+            else:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {
+                            "role": "system", 
+                            "content": self._get_system_prompt()
+                        },
+                        {
+                            "role": "user", 
+                            "content": prompt
+                        }
+                    ],
+                    temperature=self.temperature,
+                    max_tokens=1500
+                )
+                decision_text = response.choices[0].message.content
             
             # Parse the response
-            decision_text = response.choices[0].message.content
             parsed_decisions = self._parse_ai_response(decision_text)
             
             return {

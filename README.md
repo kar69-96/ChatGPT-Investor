@@ -19,12 +19,38 @@ So, starting with just $100, I wanted to answer a simple but powerful question:
 
 **Can powerful large language models like ChatGPT actually generate alpha (or at least make smart trading decisions) using real-time data?**
 
-## Each trading day:
+## 🤖 Now Fully Automated:
 
-- I provide it trading data on the stocks in its portfolio.  
-- Strict stop-loss rules apply.  
-- Every week I allow it to use deep research to reevaluate its account.  
-- I track and publish performance data weekly on my blog: [Here](https://nathanbsmith729.substack.com)
+- **Complete autonomy** - runs without manual intervention
+- **Deep technical analysis** - RSI, moving averages, support/resistance levels
+- **Specific trading recommendations** - exact quantities and precise entry/exit prices  
+- **Daily email reports** - comprehensive AI analysis sent automatically
+- **Login-triggered reports** - get updates when you log in after 4PM EST
+- **Stop-loss monitoring** - instant alerts when positions hit risk levels
+- **Professional reporting** - HTML emails with performance metrics
+
+### **Quick Start Options:**
+
+**Option 1: Login-Triggered Reports (Recommended)**
+```bash
+./setup_login_trigger.sh
+```
+- Automatically sends trading report when you log in after 4PM EST
+- No background processes needed
+- Perfect for daily check-ins
+
+**Option 2: Continuous Background Service**  
+```bash
+./start_background_service.sh
+```
+- Runs 24/7 and sends reports at 7PM EST daily
+- Complete hands-off automation
+
+**Option 3: Manual On-Demand**
+```bash
+python3 scheduler/login_trigger.py
+```
+- Generate and send report immediately
 
 ## Research & Documentation
 
